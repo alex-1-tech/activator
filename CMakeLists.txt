@@ -5,6 +5,7 @@ project(LicenseActivator VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -35,6 +36,7 @@ qt_add_executable(${PROJECT_NAME}
 )
 
 
+
 qt_add_qml_module(${PROJECT_NAME}
 
     URI ActivatorUI
@@ -47,9 +49,16 @@ qt_add_qml_module(${PROJECT_NAME}
 
 
 
+set_target_properties(${PROJECT_NAME}
+PROPERTIES
+    WIN32_EXECUTABLE TRUE
+)
+
+
+
 target_link_libraries(${PROJECT_NAME}
 
-    PRIVATE
+PRIVATE
 
     Qt6::Core
     Qt6::Gui
@@ -57,21 +66,59 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Quick
     Qt6::QuickControls2
 
-    OpenSSL::SSL
     OpenSSL::Crypto
+    OpenSSL::SSL
 )
 
 
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
+# =====================
+# Windows deploy
+# =====================
 
-    WIN32_EXECUTABLE TRUE
+if(WIN32)
+
+
+get_target_property(QMAKE_EXE Qt6::qmake IMPORTED_LOCATION)
+
+get_filename_component(
+    QT_BIN_DIR
+    "${QMAKE_EXE}"
+    DIRECTORY
+)
+
+
+find_program(
+    WINDEPLOYQT_EXECUTABLE
+    windeployqt
+    HINTS "${QT_BIN_DIR}"
+)
+
+
+if(WINDEPLOYQT_EXECUTABLE)
+
+
+add_custom_command(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
+
+
+    COMMAND
+    ${WINDEPLOYQT_EXECUTABLE}
+
+    --qmldir
+    "${CMAKE_SOURCE_DIR}/qml"
+
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
 
 )
 
 
+endif()
 
-# копируем ключ рядом с exe
+
+
+# keys
 
 add_custom_command(
     TARGET ${PROJECT_NAME}
@@ -87,40 +134,51 @@ add_custom_command(
 
 
 
-if(WIN32)
+# OpenSSL dll
 
-    get_target_property(QMAKE_EXE Qt6::qmake IMPORTED_LOCATION)
-
-    get_filename_component(
-        QT_BIN_DIR
-        "${QMAKE_EXE}"
-        DIRECTORY
-    )
+get_filename_component(
+    OPENSSL_BIN_DIR
+    "${OPENSSL_CRYPTO_LIBRARY}"
+    DIRECTORY
+)
 
 
-    find_program(
-        WINDEPLOYQT_EXECUTABLE
-        windeployqt
-        HINTS "${QT_BIN_DIR}"
-    )
+if(EXISTS "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll")
+
+add_custom_command(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
+
+    COMMAND ${CMAKE_COMMAND}
+    -E copy_if_different
+
+    "${OPENSSL_BIN_DIR}/libcrypto-3-x64.dll"
+
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+
+)
+
+endif()
 
 
-    if(WINDEPLOYQT_EXECUTABLE)
 
-        add_custom_command(
-            TARGET ${PROJECT_NAME}
-            POST_BUILD
+if(EXISTS "${OPENSSL_BIN_DIR}/libssl-3-x64.dll")
 
-            COMMAND
-            ${WINDEPLOYQT_EXECUTABLE}
+add_custom_command(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
 
-            --qmldir
-            "${CMAKE_SOURCE_DIR}/qml"
+    COMMAND ${CMAKE_COMMAND}
+    -E copy_if_different
 
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+    "${OPENSSL_BIN_DIR}/libssl-3-x64.dll"
 
-        )
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
 
-    endif()
+)
+
+endif()
+
+
 
 endif()
