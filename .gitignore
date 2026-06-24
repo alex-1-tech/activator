@@ -70,3 +70,4 @@ Testing/
 
 keys/
 .vscode/
+.qmlls.ini
