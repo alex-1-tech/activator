@@ -19,8 +19,9 @@ find_package(Qt6 REQUIRED COMPONENTS
 )
 
 
-find_package(OpenSSL REQUIRED)
+set(OPENSSL_ROOT_DIR "C:/Program Files/OpenSSL-Win64")
 
+find_package(OpenSSL REQUIRED)
 
 qt_standard_project_setup(
     REQUIRES 6.8
